@@ -1,0 +1,79 @@
+service: ses-management-service
+
+frameworkVersion: '3'
+
+plugins:
+  - serverless-offline
+  - serverless-bundle
+
+package:
+  patterns:
+    - node_modules/aws-sdk/**
+
+provider:
+  name: aws
+  memorySize: 128
+  region: ${opt:region, 'eu-central-1'}
+  versionFunctions: false
+  runtime: nodejs14.x
+  stackName: ${self:service}-stack
+  deploymentBucket:
+    name: ${param:bucket}
+  iam:
+    role:
+      statements:
+        - Effect: Allow
+          Action: [ lambda:InvokeFunction ]
+          Resource: "*"
+        - Effect: Allow
+          Action: [ ses:DeleteEmailIdentity, ses:ListEmailIdentities, ses:GetAccount, ses:CreateEmailIdentity ]
+          Resource: "*"
+  environment:
+    REGION: ${self:provider.region}
+
+custom:
+  bundle:
+    forceExclude:
+      - aws-sdk
+    excludeFiles:
+      - "deploy.sh"
+
+functions:
+  info:
+    handler: index.handler
+    events:
+      - http:
+          path: /info
+          method: get
+          cors:
+            headers:
+              - '*'
+            origin:
+              - '*'
+  identities:
+    handler: index.identityHandler
+    events:
+      - http:
+          path: /identities
+          method: get
+          cors:
+            headers:
+              - '*'
+            origin:
+              - '*'
+      - http:
+          path: /identities/{identity}
+          method: post
+          cors:
+            headers:
+              - '*'
+            origin:
+              - '*'
+      - http:
+          path: /identities/{identity}
+          method: delete
+          cors:
+            headers:
+              - '*'
+            origin:
+              - '*'
