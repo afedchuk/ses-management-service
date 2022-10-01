@@ -26,12 +26,27 @@ provider:
           Action: [ lambda:InvokeFunction ]
           Resource: "*"
         - Effect: Allow
-          Action: [ ses:DeleteEmailIdentity, ses:ListEmailIdentities, ses:GetAccount, ses:CreateEmailIdentity ]
+          Action: [ ses:* ]
+          Resource: "*"
+        - Effect: Allow
+          Action: [ logs:* ]
           Resource: "*"
   environment:
     REGION: ${self:provider.region}
+    SENDER: ${param:sender}
+    DESTINATION: ${param:destination}
 
 custom:
+  sesNotificationsTopicName: ses-business-support
+  sesNotificationsTopicArn:
+    Fn::Join:
+      - ""
+      - - "arn:aws:sns:"
+        - Ref: "AWS::Region"
+        - ":"
+        - Ref: "AWS::AccountId"
+        - ":"
+        - ${self:custom.sesNotificationsTopicName}
   bundle:
     forceExclude:
       - aws-sdk
@@ -39,6 +54,12 @@ custom:
       - "deploy.sh"
 
 functions:
+  send-notification-handler:
+    handler: index.sendNotificationHandler
+    events:
+      - sns:
+          arn: ${self:custom.sesNotificationsTopicArn}
+          topicName: ${self:custom.sesNotificationsTopicName}
   info:
     handler: index.handler
     events:
